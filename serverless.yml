@@ -1,0 +1,70 @@
+service: object-lambda-transform
+frameworkVersion: '2'
+
+plugins:
+  - serverless-python-requirements
+
+provider:
+  name: aws
+  runtime: python3.7
+  lambdaHashingVersion: 20201221
+  stage: dev
+  region: us-east-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3-object-lambda:WriteGetObjectResponse
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:ListBucket
+          Resource:
+            - !GetAtt bucket.Arn
+            - !Join ['/', [{Fn::GetAtt: [bucket, Arn]}, '*']]
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+
+functions:
+  transformer:
+    handler: handler.handle_event
+    memory: 512
+    timeout: 30
+    environment:
+      BUCKET_NAME: !Ref bucket
+
+resources:
+  Resources:
+    bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: !Sub ${self:service}-${self:provider.stage}-${AWS::AccountId}-${AWS::Region}
+
+    bucketAccessPoint:
+      Type: AWS::S3::AccessPoint
+      Properties:
+        Bucket: !Ref bucket
+        Name: ${self:service}-${self:provider.stage}-ap
+
+    lambdaAccessPoint:
+      Type: AWS::S3ObjectLambda::AccessPoint
+      Properties:
+        Name: ${self:service}-${self:provider.stage}-lambda-ap
+        ObjectLambdaConfiguration:
+          CloudWatchMetricsEnabled: true
+          SupportingAccessPoint: !Sub arn:aws:s3:${AWS::Region}:${AWS::AccountId}:accesspoint/${self:service}-${self:provider.stage}-ap
+
+          TransformationConfigurations:
+            - Actions: ['GetObject']
+              ContentTransformation:
+                AwsLambda:
+                  FunctionArn: !GetAtt TransformerLambdaFunction.Arn
+
+  Outputs:
+     BucketName:
+       Description: Bucket name
+       Value: !Ref bucket

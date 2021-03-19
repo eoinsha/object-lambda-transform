@@ -1,0 +1,7 @@
+*.ipynb
+*.ipynb_checkpoints/
+*.sw?
+node_modules/
+.serverless/
+events/
+__pycache__/

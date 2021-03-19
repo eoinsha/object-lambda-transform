@@ -1,0 +1,13 @@
+{
+  "name": "object-lambda-transform",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serverless-python-requirements": "^5.1.0"
+  }
+}
